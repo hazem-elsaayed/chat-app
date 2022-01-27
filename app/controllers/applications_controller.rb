@@ -1,5 +1,6 @@
 class ApplicationsController < ApplicationController
   def create
+    return render json: { success: false, message: 'wrong params' }, status: 400 if params[:name].blank?
     application = Application.create(name: params[:name], chats_count: 0)
     msg = { success: true, token: application.token }
     render json: msg
@@ -12,11 +13,8 @@ class ApplicationsController < ApplicationController
 
   def show
     application = Application.select('name, token, chats_count')
-      .where(token: params[:token])
-    if application.blank?
-      render json: { success: false, message: "application not found" }, status: 404
-    else  
-      render json: { success: true, data: application }
-    end
+                             .where(token: params[:token])
+    return render json: { success: false, message: 'application not found' }, status: 404 if application.blank?
+    render json: { success: true, data: application }
   end
 end
