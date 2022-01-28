@@ -8,4 +8,9 @@ class MessagesController < ApplicationController
     render json: { success: true, message_number: new_message.message_number }
   end
   
+  def index
+    messages = Message.select("sender, message, message_number").joins(chat: :application).where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number])
+    render json: { success: true, data: messages }
+  end
+  
 end
