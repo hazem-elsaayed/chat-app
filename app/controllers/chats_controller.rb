@@ -12,5 +12,11 @@ class ChatsController < ApplicationController
     chats = Chat.select("chats.name, chats.messages_count, chats.chat_number").joins('JOIN applications ON applications.id = chats.application_id').where('applications.token' => params[:token])
     render json: { success: true, data: chats }
   end
+
+  def show
+    chat = Chat.select("chats.name, chats.messages_count, chats.chat_number").joins('JOIN applications ON applications.id = chats.application_id').where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number])
+    return render json: { success: false, message: 'chat not found' }, status: 404 if chat.blank?
+    render json: { success: true, data: chat }
+  end
   
 end
