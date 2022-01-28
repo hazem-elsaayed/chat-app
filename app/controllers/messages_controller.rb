@@ -12,5 +12,12 @@ class MessagesController < ApplicationController
     messages = Message.select("sender, message, message_number").joins(chat: :application).where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number])
     render json: { success: true, data: messages }
   end
+
+  def show
+    message = Message.select("sender, message, message_number").joins(chat: :application).where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number]).where('messages.message_number' => params[:message_number]).first
+    return render json: { success: false, message: 'message not found' }, status: 404 if message.blank?
+    render json: { success: true, data: message }
+  end
+  
   
 end
