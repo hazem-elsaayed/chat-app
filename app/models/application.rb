@@ -1,5 +1,6 @@
 class Application < ApplicationRecord
-  has_many :chats, class_name: "chat", foreign_key: "application_id"
+  has_many :chat, class_name: "Chat", foreign_key: "application_id"
+  validates :name, presence: true
   before_create :generate_token
   def generate_token(length=10)
     loop do
