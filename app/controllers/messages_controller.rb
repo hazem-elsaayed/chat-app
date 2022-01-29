@@ -19,5 +19,19 @@ class MessagesController < ApplicationController
     render json: { success: true, data: message }
   end
   
+  def update
+    message = Message.joins(chat: :application).where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number]).where('messages.message_number' => params[:message_number])
+    return render json: { success: false, message: 'wrong params' }, status: 400 if (params[:sender].blank? and params[:message]) or message.blank?
+    if message.update(message_params)
+      render json: { success: true, message: "successfully updated" }
+    else
+      render json: { success: false, message: 'wrong params' }, status: 404
+    end
+  end
+
+  private
+    def message_params
+      params.permit(:sender, :message)
+    end
   
 end
