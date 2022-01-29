@@ -20,7 +20,7 @@ class ChatsController < ApplicationController
   end
   
   def update
-    chat = Chat.joins(:application).where('applications.token' => params[:token])
+    chat = Chat.joins(:application).where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number])
     return render json: { success: false, message: 'wrong params' }, status: 400 if params[:name].blank? or chat.blank?
     if chat.update(name: params[:name])
       render json: { success: true, message: "successfully updated" }
