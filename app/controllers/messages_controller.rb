@@ -30,8 +30,9 @@ class MessagesController < ApplicationController
   end
 
   def search
-    return render json: { success: false, message: 'wrong params' }, status: 400 if params[:query].blank?
-    query = MessageIndex.search(params[:query].to_s)
+    chat_id = Chat.joins(:application).where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number]).pluck(:id)[0]
+    return render json: { success: false, message: 'wrong params' }, status: 400 if params[:query].blank? or chat_id.blank?
+    query = MessageIndex.search(params[:query].to_s).where(chat_id: chat_id)
     data = query.records.blank? ? [] : removeId(query.records)
     render json: { success: true, data: data, count: query.total_entries }
   end
