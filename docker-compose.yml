@@ -1,0 +1,36 @@
+version: "3.7"
+services:
+ elasticsearch:
+   container_name: es-container
+   image: docker.elastic.co/elasticsearch/elasticsearch:7.11.0
+   environment:
+     - xpack.security.enabled=false
+     - "discovery.type=single-node"
+   ports:
+     - 9200:9200
+
+ db:
+   image: "mysql"
+   environment:
+     MYSQL_ROOT_PASSWORD: test123456
+   ports:
+      - "3307:3306"
+
+ website:
+   depends_on:
+      - "db"
+      - "elasticsearch"
+      - "kibana"
+   build: .
+   ports:
+      - "3000:3000"
+   environment:
+     DB_USERNAME: root
+     DB_PASSWORD: test123456
+     DB_DATABASE: chat_app
+     DB_PORT: 3306
+     DB_HOST: db
+     ES_Host: http://es-container:9200
+     RAILS_MAX_THREADS: 5
+   volumes:
+      - ".:/app"
