@@ -29,9 +29,25 @@ class MessagesController < ApplicationController
     end
   end
 
+  def search
+    return render json: { success: false, message: 'wrong params' }, status: 400 if params[:query].blank?
+    query = MessageIndex.search(params[:query].to_s)
+    data = query.records.blank? ? [] : removeId(query.records)
+    render json: { success: true, data: data, count: query.total_entries }
+  end
+
   private
     def message_params
       params.permit(:sender, :message)
     end
-  
+  private
+    def removeId(data)
+      result = []
+      data.each do |e|
+        row = { sender: e.sender, message: e.message, message_number: e.message_number }
+        result << row
+      end
+      return result
+    end
+
 end
