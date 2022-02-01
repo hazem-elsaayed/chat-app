@@ -4,7 +4,6 @@ RUN mkdir /app
 WORKDIR /app
 
 COPY Gemfile Gemfile.lock ./
-RUN gem update --system
 RUN \
   gem update --system --quiet && \
   gem install  bundler -v '~> 2.1'
