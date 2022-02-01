@@ -1,10 +1,13 @@
 class ChatsController < ApplicationController
   def create
     return render json: { success: false, message: 'wrong params' }, status: 400 if params[:name].blank?
-    last_chat = Chat.joins(:application).where('applications.token' => params[:token]).last
-    chat_number = last_chat.blank? ? 1 : last_chat.chat_number + 1
-    application_id = last_chat.blank? ? Application.where(token: params[:token]).pluck(:id)[0] : last_chat.application_id
-    new_chat = Chat.create(name: params[:name], chat_number: chat_number, messages_count: 0, application_id: application_id)
+    new_chat = {}
+    Chat.transaction(isolation: :serializable) do
+      last_chat = Chat.joins(:application).where('applications.token' => params[:token]).last
+      chat_number = last_chat.blank? ? 1 : last_chat.chat_number + 1
+      application_id = last_chat.blank? ? Application.where(token: params[:token]).pluck(:id)[0] : last_chat.application_id
+      new_chat = Chat.create(name: params[:name], chat_number: chat_number, messages_count: 0, application_id: application_id)
+    end  
     render json: { success: true, chat_number: new_chat.chat_number }
   end
 
@@ -20,12 +23,14 @@ class ChatsController < ApplicationController
   end
   
   def update
-    chat = Chat.joins(:application).where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number])
-    return render json: { success: false, message: 'wrong params' }, status: 400 if params[:name].blank? or chat.blank?
-    if chat.update(name: params[:name])
-      render json: { success: true, message: "successfully updated" }
-    else
-      render json: { success: false, message: 'wrong params' }, status: 404
+    Chat.transaction do
+      chat = Chat.joins(:application).where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number])
+      return render json: { success: false, message: 'wrong params' }, status: 400 if params[:name].blank? or chat.blank?
+      if chat.update(name: params[:name])
+        render json: { success: true, message: "successfully updated" }
+      else
+        render json: { success: false, message: 'wrong params' }, status: 404
+      end
     end
   end
 end

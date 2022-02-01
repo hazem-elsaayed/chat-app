@@ -19,12 +19,14 @@ class ApplicationsController < ApplicationController
   end
 
   def update
-    application = Application.where(token: params[:token])
-    return render json: { success: false, message: 'wrong params' }, status: 400 if params[:name].blank? or application.blank?
-    if application.update(name: params[:name])
-      render json: { success: true, message: "successfully updated" }
-    else
-      render json: { success: false, message: 'wrong params' }, status: 404
+    Application.transaction do
+      application = Application.where(token: params[:token])
+      return render json: { success: false, message: 'wrong params' }, status: 400 if params[:name].blank? or application.blank?
+      if application.update(name: params[:name])
+        render json: { success: true, message: "successfully updated" }
+      else
+        render json: { success: false, message: 'wrong params' }, status: 404
+      end
     end
   end
 end
