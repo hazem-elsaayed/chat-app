@@ -1,4 +1,4 @@
-class CreateChats < ActiveRecord::Migration[7.0]
+class CreateChats < ActiveRecord::Migration[5.2]
   def change
     create_table :chats do |t|
       t.integer :chat_number, index: true
