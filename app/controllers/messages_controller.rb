@@ -1,60 +1,60 @@
 class MessagesController < ApplicationController
+  before_action :set_chat
+
   def create
-    return render json: { success: false, message: 'wrong params' }, status: 400 if params[:sender].blank? or params[:message].blank?
-    new_message = {}
-    Message.transaction(isolation: :serializable) do
-      last_message = Message.joins(chat: :application).where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number]).last
-      message_number = last_message.blank? ? 1 : last_message.message_number + 1
-      chat_id = last_message.blank? ? Chat.joins(:application).where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number]).pluck(:id)[0] : last_message.chat_id
-      new_message = Message.create(message: params[:message], sender: params[:sender], chat_id: chat_id, message_number: message_number)
-    end  
-    render json: { success: true, message_number: new_message.message_number }
+    message_number = get_message_number
+    message = @chat.message.new(message_params.merge(message_number: message_number))
+    raise message.errors.full_messages.join(', ') if message.invalid?
+    PUBLISHER.publish_message('message', message.to_json)
+    render json: { success: true, message_number: message_number }
+  rescue StandardError => e
+    render json: { success: false, message: e }, status: :bad_request
   end
-  
+
   def index
-    messages = Message.select("sender, message, message_number").joins(chat: :application).where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number])
-    render json: { success: true, data: messages }
+    render json: @chat.message
   end
 
   def show
-    message = Message.select("sender, message, message_number").joins(chat: :application).where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number]).where('messages.message_number' => params[:message_number]).first
-    return render json: { success: false, message: 'message not found' }, status: 404 if message.blank?
-    render json: { success: true, data: message }
+    message = @chat.message.find_by!(message_number: params[:message_number])
+    render json: message
+  rescue StandardError => e
+    render json: { success: false, message: e }, status: :bad_request
   end
-  
+
   def update
     Message.transaction do
-      message = Message.joins(chat: :application).where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number]).where('messages.message_number' => params[:message_number])
-      return render json: { success: false, message: 'wrong params' }, status: 400 if (params[:sender].blank? and params[:message]) or message.blank?
-      if message.update(message_params)
-        render json: { success: true, message: "successfully updated" }
-      else
-        render json: { success: false, message: 'wrong params' }, status: 404
-      end
+      message = @chat.message.lock.find_by!(message_number: params[:message_number])
+      message.update!(message_params)
     end
+    render json: { success: true, message: 'successfully updated' }
+  rescue StandardError => e
+    render json: { success: false, message: e }, status: :bad_request
   end
 
   def search
-    chat_id = Chat.joins(:application).where('applications.token' => params[:token]).where('chats.chat_number' => params[:chat_number]).pluck(:id)[0]
-    return render json: { success: false, message: 'wrong params' }, status: 400 if params[:query].blank? or chat_id.blank?
-    query = MessageIndex.search(params[:query].to_s).where(chat_id: chat_id)
-    data = query.records.blank? ? [] : removeId(query.records)
-    render json: { success: true, data: data, count: query.total_entries }
+    return render json: { success: false, message: 'empty query' }, status: :bad_request if params[:query].blank?
+
+    query = MessageIndex.search(params[:query].to_s).where(chat_id: @chat.id)
+    render json: query.records
   end
 
   private
-    def message_params
-      params.permit(:sender, :message)
-    end
-  
-  private
-    def removeId(data)
-      result = []
-      data.each do |e|
-        row = { sender: e.sender, message: e.message, message_number: e.message_number }
-        result << row
-      end
-      return result
-    end
 
+  def set_chat
+    @chat = Application.find_by!(token: params[:application_token]).chat.find_by!(chat_number: params[:chat_number])
+  rescue StandardError => e
+    render json: { success: false, message: e }, status: :bad_request
+  end
+
+  def message_params
+    params.permit(:sender, :content)
+  end
+
+  def get_message_number
+    unless REDIS.exists?("message_number_#{params[:application_token]}_#{params[:chat_number]}")
+      REDIS.set("message_number_#{params[:application_token]}_#{params[:chat_number]}", 0)
+    end
+    REDIS.incr("message_number_#{params[:application_token]}_#{params[:chat_number]}")
+  end
 end

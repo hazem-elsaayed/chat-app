@@ -1,32 +1,30 @@
 class ApplicationsController < ApplicationController
   def create
-    return render json: { success: false, message: 'wrong params' }, status: 400 if params[:name].blank?
-    application = Application.create(name: params[:name], chats_count: 0)
-    msg = { success: true, token: application.token }
-    render json: msg
+    application = Application.create!(name: params[:name])
+    render json: { success: true, token: application.token }
+  rescue StandardError => e
+    render json: { success: false, message: e }, status: :bad_request
   end
 
   def index
-    applications = Application.select('name, token, chats_count').all
-    render json: { success: true, data: applications }
+    applications = Application.all
+    render json: applications
   end
 
   def show
-    application = Application.select('name, token, chats_count')
-                             .where(token: params[:token])
-    return render json: { success: false, message: 'application not found' }, status: 404 if application.blank?
-    render json: { success: true, data: application }
+    application = Application.find_by!(token: params[:token])
+    render json: application
+  rescue StandardError => e
+    render json: { success: false, message: e }, status: :bad_request
   end
 
   def update
     Application.transaction do
-      application = Application.where(token: params[:token])
-      return render json: { success: false, message: 'wrong params' }, status: 400 if params[:name].blank? or application.blank?
-      if application.update(name: params[:name])
-        render json: { success: true, message: "successfully updated" }
-      else
-        render json: { success: false, message: 'wrong params' }, status: 404
-      end
+      application = Application.lock.find_by!(token: params[:token])
+      application.update!(name: params[:name])
     end
+    render json: { success: true, message: "successfully updated" }
+  rescue StandardError => e
+    render json: { success: false, message: e }, status: :bad_request
   end
 end
