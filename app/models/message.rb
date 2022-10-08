@@ -1,5 +1,4 @@
 class Message < ApplicationRecord
-  # include SearchFlip::Model
   include Elasticsearch::Model
   include Elasticsearch::Model::Callbacks
 
@@ -9,7 +8,6 @@ class Message < ApplicationRecord
   validates :sender, :content, :message_number, presence: true
   validates :message_number, uniqueness: true
   belongs_to :chat, class_name: 'Chat', foreign_key: 'chat_id'
-  # notifies_index(MessageIndex)
 
   settings index: { number_of_shards: 1 } do
     mapping dynamic: false do

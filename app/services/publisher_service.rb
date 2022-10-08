@@ -1,5 +1,4 @@
 class PublisherService
-  attr_accessor :new_connection, :channel
 
   def initialize
     @mq_service = BaseQueueService.instance
