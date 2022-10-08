@@ -22,6 +22,8 @@ services:
    command: redis-server
    ports:
      - "6379:6379"
+   volumes:
+     - redis_data:/data
 
  db:
    image: "mysql"
@@ -54,3 +56,4 @@ services:
 
 volumes:
   chat_app_db:
+  redis_data:
