@@ -1,0 +1,1 @@
+Elasticsearch::Model.client = Elasticsearch::Client.new host: ENV.fetch("ES_Host")

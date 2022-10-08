@@ -35,7 +35,7 @@ class MessagesController < ApplicationController
   def search
     return render json: { success: false, message: 'empty query' }, status: :bad_request if params[:query].blank?
 
-    query = MessageIndex.search(params[:query].to_s).where(chat_id: @chat.id)
+    query = Message.search(params[:query].to_s, @chat.id)
     render json: query.records
   end
 
